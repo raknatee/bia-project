@@ -1,0 +1,69 @@
+version: '3.1'
+
+services:
+
+  nginx:
+    build:
+          context: ./nginx
+    restart: always
+    ports:
+      - "443:443"
+    depends_on: 
+      - metabase
+      - jira
+
+  db:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: bia1234
+    ports:
+      - "3306:3306"
+    volumes:
+      - my-sql-data:/var/lib/mysql
+
+  metabase:
+    image: metabase/metabase
+    volumes:
+      - /matabase-data:/metabase-data
+    environment:
+    - MB_DB_FILE=/metabase-data/metabase.db
+  adminer:
+    image: adminer
+    restart: always
+
+
+
+  jira:
+        build:
+          context: ./JIRA
+        environment: 
+            - ATL_JDBC_URL=mysql:3306
+            - ATL_JDBC_USER=root
+            - ATL_JDBC_PASSWORD:jira1234
+            - ATL_DB_DRIVER=com.mysql.jdbc.Driver
+            - ATL_DB_TYPE=mysql
+        volumes: 
+            - ./JIRA_Config:/var/atlassian/application-data/jira
+            
+       
+  mysql:
+    build:
+      context: ./JIRA
+      dockerfile: Dockerfile.mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    volumes:
+      - jira-sql:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: jira1234
+
+
+volumes:
+  my-sql-data:
+  matabase-data:
+
+  jira-sql:
+
+  
