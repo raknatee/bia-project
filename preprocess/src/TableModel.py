@@ -1,7 +1,8 @@
 from __future__ import annotations
 from Counter import CounterMod,CounterCountMod
 from datetime import datetime
-from typing import get_type_hints,Union,Any,Dict
+from typing import get_type_hints,Union,Any,Dict,List
+from merge_words import merge_words
 import sys
 class Data:
     end_of_period:datetime
@@ -45,6 +46,8 @@ class Data:
         for att,clz in get_type_hints(cls).items():
             i:str=header_list.index(att)
             clz:Union[str,float,datetime]
+            if(not i<len(obj)):
+                continue
             if(clz is datetime):
                 clz:datetime
                 try:
@@ -54,12 +57,17 @@ class Data:
                 
             else:
                 try:
-                    t.__setattr__(att,clz(obj[i]))
-                except ValueError as err:
-                    # TODO: check!!!! interest_rate is "Fully Repaid"
-                    # print(att,clz,obj[i])
-                    # sys.exit()
-                    pass
+                    value:str = obj[i]
+                    if(value==""):
+                        t.__setattr__(att,None)
+                    else:
+                        t.__setattr__(att,clz(obj[i]))
+              
+                except ValueError as e:
+                    print(att,obj[i])
+                    print(string)
+                    print(obj)
+                    raise e
 
            
         return t
@@ -94,27 +102,60 @@ def get_header_list(header_text:str)->List[str]:
         returned.append(f"{'_'.join(words)}")
     return returned
 
+
 if __name__ == "__main__":
     with open(csv_path,"r") as f:
         header_list = get_header_list(f.readline())
         i = 0
-        years:Dict[str,int]={}
+        counties:Dict[str,int]={}
         string:str
+        missing_data:int=0
         while string:=f.readline():
-            if(CounterMod.listen("limit",None) ):break
-            if(CounterCountMod.listen("how many",int(1e4)) ):
-                print(f"done at {CounterCountMod.get_i('how many')}\n {years}\n")
-
-           
-            
-            obj:Data = Data.from_list(string.split(",")) 
-            year:int = obj.end_of_period.year
-            if year in years:
-                years[year]+=1
-            else:
-                years[year] = 1
-
             i+=1
-        print(years)
+            if(i<450_000):
+                if(CounterCountMod.listen("skip",int(1e4))):
+                    print(f"skip {i}")
+                continue
+
+
+            if(CounterMod.listen("limit",None) ):break
+            if(CounterCountMod.listen("progress bar",int(1e4)) ):
+                print(CounterCountMod.get_i("progress bar"))
+
+            
+       
+            p:List[str]
+            # case 1: need to merge
+            if(len(header_list)<len(string.split(",")) ):
+                p = merge_words(string.split(","))
+            else:
+                p = string.split(",")
+
+            obj:Data = Data.from_list(p) 
+
+
+            #### Filtering by End of periods year
+            year:str
+            try:
+                year = obj.end_of_period.year
+            except AttributeError as e:
+                year = '0'
+            if not(int(year) >= 2010 and int(year)<=2020):
+                continue
+            ####
+
+            country:str = obj.country
+            if(country in counties):
+                counties[country]+=1
+            else:
+                counties[country]=1
+            
+            
+    
+        print(counties)
+        country:str
+        recored:int
+        for country,recored in counties.items():
+            print(country,recored)
 
 # print(get_type_hints(Data))
