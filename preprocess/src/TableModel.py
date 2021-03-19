@@ -6,41 +6,41 @@ from merge_words import merge_words
 import sys
 class Data:
     end_of_period:datetime
-    loan_number:str
+    # loan_number:str
     region:str
-    country_code:str
+    # country_code:str
     country:str
-    borrower:str
-    guarantor_country_code:str
-    guarantor:str
-    loan_type:str
-    loan_status:str
+    # borrower:str
+    # guarantor_country_code:str
+    # guarantor:str
+    # loan_type:str
+    # loan_status:str
     interest_rate:float
-    currency_of_commitment:str
+    # currency_of_commitment:str
     project_id:str
     project_name_:str
-    original_principal_amount:float
+    # original_principal_amount:float
     cancelled_amount:float
     undisbursed_amount:float
     disbursed_amount:float
-    repaid_to_ibrd:float
-    due_to_ibrd:float
-    exchange_adjustment:float
-    borrower_s_obligation:float
-    sold_3rd_party:float
-    repaid_3rd_party:float
-    due_3rd_party:float
-    loans_held:float
-    first_repayment_date:datetime
-    last_repayment_date:datetime
-    agreement_signing_date:datetime
-    board_approval_date:datetime
-    effective_date:datetime
-    closed_date:datetime
-    last_disbursement_date:datetime
+    # repaid_to_ibrd:float
+    # due_to_ibrd:float
+    # exchange_adjustment:float
+    # borrower_s_obligation:float
+    # sold_3rd_party:float
+    # repaid_3rd_party:float
+    # due_3rd_party:float
+    # loans_held:float
+    # first_repayment_date:datetime
+    # last_repayment_date:datetime
+    # agreement_signing_date:datetime
+    # board_approval_date:datetime
+    # effective_date:datetime
+    # closed_date:datetime
+    # last_disbursement_date:datetime
 
     @classmethod
-    def from_list(cls,obj:List[str])->Data:
+    def from_list(cls,obj:List[str],header_list:List[str])->Data:
         t= Data()
         
         for att,clz in get_type_hints(cls).items():
@@ -72,6 +72,8 @@ class Data:
            
         return t
 
+    def _get_att(self)->Dict:
+        return get_type_hints(self.__class__)
     def __str__(self):
         clz = self.__class__
         returned:str = ""
@@ -82,7 +84,27 @@ class Data:
         
         return returned
 
+    @classmethod
+    def sql_create_table(cls)->str:
+        _create_data:List[str] = []
+        for att,clz in get_type_hints(cls).items():
+            if(clz is str):
+                _create_data.append(f"{att} varchar(255)")
+            if(clz is float):
+                _create_data.append(f"{att} float")
+            if(clz is datetime):
+                _create_data.append(f"{att} datetime")
+        
+       
+        sql = f"create table loan ({','.join(_create_data)});"
+        return sql
 
+    def value_sql(self)->str:
+       
+        v:List[str] = []
+        for att in self._get_att():
+            v.append("'"+str(getattr(self,att))+"'")
+        return f"({','.join(v)})"
 
 csv_path = r"../data.csv"
 
@@ -107,15 +129,15 @@ if __name__ == "__main__":
     with open(csv_path,"r") as f:
         header_list = get_header_list(f.readline())
         i = 0
-        counties:Dict[str,int]={}
+        
         string:str
         missing_data:int=0
         while string:=f.readline():
             i+=1
-            if(i<450_000):
-                if(CounterCountMod.listen("skip",int(1e4))):
-                    print(f"skip {i}")
-                continue
+            # if(i<450_000):
+            #     if(CounterCountMod.listen("skip",int(1e4))):
+            #         print(f"skip {i}")
+            #     continue
 
 
             if(CounterMod.listen("limit",None) ):break
@@ -144,18 +166,7 @@ if __name__ == "__main__":
                 continue
             ####
 
-            country:str = obj.country
-            if(country in counties):
-                counties[country]+=1
-            else:
-                counties[country]=1
+            # print(obj.value_sql())
             
-            
-    
-        print(counties)
-        country:str
-        recored:int
-        for country,recored in counties.items():
-            print(country,recored)
 
 # print(get_type_hints(Data))

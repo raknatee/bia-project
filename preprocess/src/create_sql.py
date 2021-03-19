@@ -1,0 +1,74 @@
+from TableModel import Data,get_header_list
+from Counter import CounterMod,CounterCountMod
+from merge_words import merge_words
+from typing import Union,List,Dict
+print("""
+0 => create table
+1 => insert data (sample data)
+2 => insert data (all)
+""")
+
+cmd = int(input(">>"))
+csv_path = r"../data.csv"
+
+if(cmd==0):
+    with open("../sql/create_table.sql","w") as f:
+        f.write(Data.sql_create_table())
+
+if(cmd==1 or cmd==2):
+    values:List[str] = []
+    with open(csv_path,"r") as f:
+        header_list = get_header_list(f.readline())
+        i = 0
+        
+        string:str
+        missing_data:int=0
+        while string:=f.readline():
+            i+=1
+            # if(i<450_000):
+            #     if(CounterCountMod.listen("skip",int(1e4))):
+            #         print(f"skip {i}")
+            #     continue
+
+            _limit:Union[int,None]
+            if(cmd==1):
+                _limit = 1000
+            else:
+                _limit = None
+            if(CounterMod.listen("limit",_limit) ):break
+            if(CounterCountMod.listen("progress bar",int(1e4)) ):
+                print(CounterCountMod.get_i("progress bar"))
+
+            
+       
+            p:List[str]
+            # case 1: need to merge
+            if(len(header_list)<len(string.split(",")) ):
+                p = merge_words(string.split(","))
+            else:
+                p = string.split(",")
+
+            obj:Data = Data.from_list(p,header_list) 
+
+
+            #### Filtering by End of periods year
+            year:str
+            try:
+                year = obj.end_of_period.year
+            except AttributeError as e:
+                year = '0'
+            if not(int(year) >= 2010 and int(year)<=2020):
+                continue
+            ####
+
+            #### Filter only Thailand
+            country:str = obj.country
+            if(country != "Thailand"):
+                continue
+
+            values.append(obj.value_sql())
+    with open("../sql/insert_data.sql","w") as f:
+        f.write(f"insert into loan values {','.join(values)};")
+
+
+   
