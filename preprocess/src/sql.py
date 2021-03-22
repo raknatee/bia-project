@@ -2,16 +2,16 @@ import mysql.connector
 import os
 
 connector = mysql.connector.connect(
-  host="db",
+  host="bia.raknatee.dev",
+  # host="db",
   user="root",
-  password=os.environ['MYSQL_ROOT_PASSWORD']
+  password=os.environ['MYSQL_ROOT_PASSWORD'],
+  database = "bia_data"
 )
 
-def insert(sql,value=None):
+def insert(sql,p=False):
   mycursor = connector.cursor()
-  if(value is None):
-    mycursor.execute(sql)
-  else:
-    mycursor.execute(sql,value)
+  mycursor.execute(sql)
   connector.commit()
-  print(mycursor.rowcount,"record inserted")
+  if(p):
+    print(mycursor.rowcount,"record inserted")

@@ -5,13 +5,16 @@ services:
       context: .
     volumes:
       - ./:/working/app
+    env_file:
+      - secret.env
+
   
   db:
     image: mysql
     command: --default-authentication-plugin=mysql_native_password
     restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: bia1234
+    env_file:
+      - secret.env
     ports:
       - "3306:3306"
     volumes:

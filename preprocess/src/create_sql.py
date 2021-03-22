@@ -1,28 +1,35 @@
-from TableModel import Data,get_header_list
+from TableModel import Data,get_header_list,NoneValue
 from Counter import CounterMod,CounterCountMod
 from merge_words import merge_words
 from typing import Union,List,Dict
+from sql import insert
+import mysql
+import random
 print("""
 0 => create table
 1 => insert data (sample data)
 2 => insert data (all)
+3 => dump to database (smaple data)
+4 => dump to database (all)
 """)
 
 cmd = int(input(">>"))
+
+sampling:bool = bool(input("Sampling ? True/False:"))
 csv_path = r"../data.csv"
 
 if(cmd==0):
     with open("../sql/create_table.sql","w") as f:
         f.write(Data.sql_create_table())
 
-if(cmd==1 or cmd==2):
+if(cmd in [i for i in range(1,5+1)]):
     values:List[str] = []
     with open(csv_path,"r") as f:
         header_list = get_header_list(f.readline())
         i = 0
         
         string:str
-        missing_data:int=0
+        insert_err:int=0
         while string:=f.readline():
             i+=1
             # if(i<450_000):
@@ -31,7 +38,7 @@ if(cmd==1 or cmd==2):
             #     continue
 
             _limit:Union[int,None]
-            if(cmd==1):
+            if(cmd in [1,3]):
                 _limit = 1000
             else:
                 _limit = None
@@ -39,6 +46,9 @@ if(cmd==1 or cmd==2):
             if(CounterCountMod.listen("progress bar",int(1e4)) ):
                 print(CounterCountMod.get_i("progress bar"))
 
+            if(sampling):
+                if(random.random()>0.02):
+                    continue
             
        
             p:List[str]
@@ -62,13 +72,42 @@ if(cmd==1 or cmd==2):
             ####
 
             #### Filter only Thailand
-            country:str = obj.country
-            if(country != "Thailand"):
-                continue
+            # country:str = obj.country
+            # if(country != "Thailand"):
+            #     continue
+            try:
+             
+                if(cmd in [3,4]):
+                    insert(f"insert into loan values {obj.value_sql()};")
+                else:
+                    values.append(obj.value_sql())
 
-            values.append(obj.value_sql())
-    with open("../sql/insert_data.sql","w") as f:
-        f.write(f"insert into loan values {','.join(values)};")
+             
+            except AttributeError:
+                continue
+            except mysql.connector.errors.ProgrammingError:
+                insert_err+=1
+            except mysql.connector.errors.DatabaseError:
+                # mean some fields is missing
+                continue
+            except NoneValue:
+                continue
+               
+
+    if(cmd in [1,2]):
+        filename:str 
+        if(cmd==1):
+            filename="insert_data_sample.sql"
+        if(cmd==2):
+            filename="insert_data.sql"
+
+        with open(f"../sql/{filename}","w") as f:
+            f.write(f"insert into loan values {','.join(values)};")
+    
+    if(cmd in [3,4]):
+        print("insert error",insert_err)
+    
+        
 
 
    

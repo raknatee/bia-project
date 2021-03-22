@@ -4,6 +4,9 @@ from datetime import datetime
 from typing import get_type_hints,Union,Any,Dict,List
 from merge_words import merge_words
 import sys
+
+class NoneValue(RuntimeError):
+    pass
 class Data:
     end_of_period:datetime
     # loan_number:str
@@ -72,6 +75,9 @@ class Data:
            
         return t
 
+    @classmethod
+    def n_att(cls):
+        return len(get_type_hints(cls))
     def _get_att(self)->Dict:
         return get_type_hints(self.__class__)
     def __str__(self):
@@ -103,7 +109,9 @@ class Data:
        
         v:List[str] = []
         for att in self._get_att():
-            v.append("'"+str(getattr(self,att))+"'")
+            if(getattr(self,att) is None):
+                raise NoneValue
+            v.append('"'+str(getattr(self,att))+'"')
         return f"({','.join(v)})"
 
 csv_path = r"../data.csv"
